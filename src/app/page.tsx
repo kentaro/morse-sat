@@ -1,8 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import Globe, { type Satellite } from "@/components/Globe";
-import QuizModal from "@/components/QuizModal";
+import type { Satellite } from "@/components/Globe";
 import satellitesData from "@/data/satellites.json";
 import {
   type GameProgress,
@@ -13,6 +13,11 @@ import {
   saveProgress,
   updateLevel,
 } from "@/lib/progress";
+
+const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
+const QuizModal = dynamic(() => import("@/components/QuizModal"), {
+  ssr: false,
+});
 
 export default function Home() {
   const [progress, setProgress] = useState<GameProgress>({
