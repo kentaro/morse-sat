@@ -106,7 +106,7 @@ export default function Globe({
       };
     });
 
-    // 衛星をポイントとして表示
+    // 衛星を点として表示（背景）
     globe
       .pointsData(satelliteData)
       .pointLat("lat")
@@ -114,7 +114,7 @@ export default function Globe({
       .pointAltitude(0.01)
       .pointRadius((d: any) => {
         const sat = d as (typeof satelliteData)[0];
-        return sat.isCompleted ? 3 : 2;
+        return sat.isCompleted ? 2 : 1.5;
       })
       .pointColor((d: any) => {
         const sat = d as (typeof satelliteData)[0];
@@ -123,13 +123,27 @@ export default function Globe({
           : sat.isUnlocked
             ? "#4a90e2"
             : "#666666";
-      })
-      .onPointClick((point: any) => {
-        const sat = point as (typeof satelliteData)[0];
-        if (sat.isUnlocked) {
-          onSatelliteClick(sat.satellite);
-        }
       });
+
+    // 衛星をHTMLエレメント（絵文字）として表示
+    globe.htmlElementsData(satelliteData).htmlElement((d: any) => {
+      const sat = d as (typeof satelliteData)[0];
+      const el = document.createElement("div");
+      el.style.fontSize = sat.isCompleted ? "28px" : "22px";
+      el.style.cursor = sat.isUnlocked ? "pointer" : "not-allowed";
+      el.style.pointerEvents = "auto";
+      el.style.userSelect = "none";
+      el.textContent = sat.isCompleted ? "✅" : sat.isUnlocked ? "🛰️" : "🔒";
+
+      if (sat.isUnlocked) {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          onSatelliteClick(sat.satellite);
+        });
+      }
+
+      return el;
+    });
 
     // マウス操作
     let isDragging = false;
@@ -194,6 +208,7 @@ export default function Globe({
 
       // 衛星データを更新
       globe.pointsData([...satelliteData]);
+      globe.htmlElementsData([...satelliteData]);
 
       globe.rotation.y = rotation.y;
       globe.rotation.x = rotation.x;
