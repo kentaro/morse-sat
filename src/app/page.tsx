@@ -220,14 +220,85 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 衛星リスト */}
+      <div className="absolute top-24 left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700 max-w-xs max-h-[70vh] overflow-y-auto">
+        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <span>🛰</span> 衛星リスト
+        </h2>
+        <div className="space-y-2">
+          {satellites.map((sat) => {
+            const isUnlocked = sat.level <= progress.level;
+            const isCompleted = completedSatellites.has(sat.id);
+            let levelColor = "text-blue-400";
+            let bgColor = "bg-blue-500/10";
+            let borderColor = "border-blue-500/30";
+            if (sat.level === 2) {
+              levelColor = "text-yellow-400";
+              bgColor = "bg-yellow-500/10";
+              borderColor = "border-yellow-500/30";
+            }
+            if (sat.level === 3) {
+              levelColor = "text-red-400";
+              bgColor = "bg-red-500/10";
+              borderColor = "border-red-500/30";
+            }
+
+            return (
+              <button
+                key={sat.id}
+                type="button"
+                onClick={() => isUnlocked && handleSatelliteClick(sat)}
+                disabled={!isUnlocked}
+                className={`w-full text-left p-3 rounded-lg border transition-all ${
+                  isCompleted
+                    ? "bg-green-500/20 border-green-500/50"
+                    : isUnlocked
+                      ? `${bgColor} ${borderColor} hover:bg-opacity-30`
+                      : "bg-slate-800/50 border-slate-700 opacity-50 cursor-not-allowed"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">
+                    {isCompleted ? "✅" : isUnlocked ? "🛰" : "🔒"}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      isCompleted
+                        ? "text-green-300"
+                        : isUnlocked
+                          ? "text-white"
+                          : "text-slate-500"
+                    }`}
+                  >
+                    {sat.title}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs ${levelColor}`}>
+                    Lv.{sat.level}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {isCompleted
+                      ? "クリア済み"
+                      : isUnlocked
+                        ? "挑戦可能"
+                        : "未解放"}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 操作ガイド */}
-      <div className="absolute bottom-6 left-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700 max-w-xs">
+      <div className="absolute bottom-6 right-6 z-10 bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700 max-w-xs">
         <h3 className="text-sm font-bold text-white mb-2">🎮 操作方法</h3>
         <ul className="text-xs text-slate-400 space-y-1">
           <li>🖱 ドラッグ: 地球を回転</li>
           <li>🎡 ホイール: ズーム</li>
-          <li>🛰 クリック: 衛星を選択してクイズ開始</li>
-          <li>🟩 緑: クリア済み | 🔒 灰色: 未解放</li>
+          <li>🛰 地球上をクリック または 左のリストから選択</li>
+          <li>💡 衛星にカーソルを合わせると詳細表示</li>
         </ul>
       </div>
 

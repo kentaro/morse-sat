@@ -20,6 +20,7 @@ export default function QuizModal({
   const [isCorrect, setIsCorrect] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [morsePlayer, setMorsePlayer] = useState<MorsePlayer | null>(null);
+  const [shuffledChoices, setShuffledChoices] = useState<string[]>([]);
 
   const playMorse = useCallback(async (player: MorsePlayer, morse: string) => {
     setIsPlaying(true);
@@ -31,6 +32,10 @@ export default function QuizModal({
     if (satellite) {
       const player = new MorsePlayer(15); // 15 WPM
       setMorsePlayer(player);
+
+      // 選択肢をシャッフル
+      const shuffled = [...satellite.choices].sort(() => Math.random() - 0.5);
+      setShuffledChoices(shuffled);
 
       // 自動再生
       playMorse(player, satellite.morse);
@@ -62,6 +67,7 @@ export default function QuizModal({
     setSelectedChoice(null);
     setShowResult(false);
     setIsCorrect(false);
+    setShuffledChoices([]);
     onClose();
   };
 
@@ -165,7 +171,7 @@ export default function QuizModal({
               <p className="text-slate-400 text-sm font-medium mb-3">
                 この信号は何を送信していますか？
               </p>
-              {satellite.choices.map((choice) => (
+              {shuffledChoices.map((choice) => (
                 <button
                   type="button"
                   key={choice}
