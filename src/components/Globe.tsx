@@ -6,10 +6,7 @@ import {
   Color,
   DirectionalLight,
   PerspectiveCamera,
-  Raycaster,
   Scene,
-  Vector2,
-  Vector3,
   WebGLRenderer,
 } from "three";
 import ThreeGlobe from "three-globe";
@@ -109,66 +106,55 @@ export default function Globe({
       };
     });
 
-    // 衛星をポイントとして表示
+    // 衛星をHTMLエレメントとして表示（絵文字）
     globe
-      .pointsData(satelliteData)
-      .pointLat("lat")
-      .pointLng("lng")
-      .pointColor("color")
-      .pointAltitude(0)
-      .pointRadius("size");
+      .htmlElementsData(satelliteData)
+      .htmlLat("lat")
+      .htmlLng("lng")
+      .htmlAltitude(0)
+      .htmlElement((d: any) => {
+        const sat = d as (typeof satelliteData)[0];
+        const el = document.createElement("div");
+        el.style.cursor = sat.isUnlocked ? "pointer" : "not-allowed";
+        el.style.fontSize = sat.isCompleted ? "32px" : "24px";
+        el.style.pointerEvents = "auto";
+        el.style.userSelect = "none";
+        el.style.transition = "all 0.2s ease";
+        el.innerHTML = sat.isCompleted ? "✅" : sat.isUnlocked ? "🛰️" : "🔒";
+
+        if (sat.isUnlocked) {
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            onSatelliteClick(sat.satellite);
+          });
+          el.addEventListener("mouseenter", () => {
+            el.style.transform = "scale(1.5)";
+            el.style.filter = "drop-shadow(0 0 10px rgba(255,255,255,0.9))";
+          });
+          el.addEventListener("mouseleave", () => {
+            el.style.transform = "scale(1)";
+            el.style.filter = "none";
+          });
+        }
+
+        return el;
+      });
 
     // マウス操作
     let isDragging = false;
-    let hasMoved = false;
+    let _hasMoved = false;
     let previousMousePosition = { x: 0, y: 0 };
     const rotation = { x: 0, y: 0 };
 
     const onMouseDown = (e: MouseEvent) => {
       isDragging = true;
-      hasMoved = false;
+      _hasMoved = false;
       previousMousePosition = { x: e.clientX, y: e.clientY };
       renderer.domElement.style.cursor = "grabbing";
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging) {
-        // ホバー時のカーソル変更
-        const rect = renderer.domElement.getBoundingClientRect();
-        const _mouse = {
-          x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
-          y: -((e.clientY - rect.top) / rect.height) * 2 + 1,
-        };
-
-        // 衛星との距離チェック（ホバー時のカーソル変更）
-        let nearSatellite = false;
-        for (const sat of satelliteData) {
-          if (!sat.isUnlocked) continue;
-
-          // 現在の経度を使用
-          const currentLng = sat.lng;
-          const phi = ((90 - sat.lat) * Math.PI) / 180;
-          const theta = ((currentLng + 180) * Math.PI) / 180;
-          const radius = 100;
-
-          const satX = -(radius * Math.sin(phi) * Math.cos(theta));
-          const satY = radius * Math.cos(phi);
-          const satZ = radius * Math.sin(phi) * Math.sin(theta);
-
-          // 画面上の距離を計算（簡易）
-          const distance = Math.sqrt(
-            (satX - camera.position.x) ** 2 +
-              (satY - camera.position.y) ** 2 +
-              (satZ - camera.position.z) ** 2,
-          );
-
-          if (distance < 150) {
-            nearSatellite = true;
-            break;
-          }
-        }
-
-        renderer.domElement.style.cursor = nearSatellite ? "pointer" : "grab";
         return;
       }
 
@@ -176,7 +162,7 @@ export default function Globe({
       const deltaY = e.clientY - previousMousePosition.y;
 
       if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
-        hasMoved = true;
+        _hasMoved = true;
       }
 
       rotation.y += deltaX * 0.005;
@@ -190,69 +176,9 @@ export default function Globe({
       renderer.domElement.style.cursor = "grab";
     };
 
-    const onClick = (e: MouseEvent) => {
-      if (hasMoved) return; // ドラッグ中はクリックとみなさない
-
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mouse = new Vector2(
-        ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        -((e.clientY - rect.top) / rect.height) * 2 + 1,
-      );
-
-      // Raycasterでクリック判定
-      const raycaster = new Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-
-      // 衛星の現在位置をVector3の配列に変換
-      const satellitePositions: Array<{
-        position: Vector3;
-        data: (typeof satelliteData)[0];
-      }> = [];
-
-      for (const sat of satelliteData) {
-        if (!sat.isUnlocked) continue;
-
-        // 現在の経度を使用（アニメーション中の位置）
-        const currentLng = sat.lng;
-        const phi = ((90 - sat.lat) * Math.PI) / 180;
-        const theta = ((currentLng + 180) * Math.PI) / 180;
-        const radius = 100;
-
-        const position = new Vector3(
-          -(radius * Math.sin(phi) * Math.cos(theta)),
-          radius * Math.cos(phi),
-          radius * Math.sin(phi) * Math.sin(theta),
-        );
-
-        satellitePositions.push({ position, data: sat });
-      }
-
-      // 各衛星に対してレイキャスト
-      let closestSat: (typeof satelliteData)[0] | null = null;
-      let closestDistance = Number.POSITIVE_INFINITY;
-
-      for (const { position, data } of satellitePositions) {
-        const ray = raycaster.ray;
-        const distance = ray.distanceToPoint(position);
-
-        // クリック範囲を広めに（画面上で大きめに）
-        const threshold = (data.size * 5) / (camera.position.z / 100);
-
-        if (distance < threshold && distance < closestDistance) {
-          closestDistance = distance;
-          closestSat = data;
-        }
-      }
-
-      if (closestSat) {
-        onSatelliteClick(closestSat.satellite);
-      }
-    };
-
     renderer.domElement.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    renderer.domElement.addEventListener("click", onClick);
 
     // ホイールズーム
     const onWheel = (e: WheelEvent) => {
@@ -276,7 +202,7 @@ export default function Globe({
       });
 
       // 衛星データを更新
-      globe.pointsData(satelliteData);
+      globe.htmlElementsData(satelliteData);
 
       globe.rotation.y = rotation.y;
       globe.rotation.x = rotation.x;
@@ -305,7 +231,6 @@ export default function Globe({
       renderer.domElement.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      renderer.domElement.removeEventListener("click", onClick);
       renderer.domElement.removeEventListener("wheel", onWheel);
       container.removeChild(renderer.domElement);
       renderer.dispose();
