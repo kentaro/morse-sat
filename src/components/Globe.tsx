@@ -123,6 +123,12 @@ export default function Globe({
           : sat.isUnlocked
             ? "#4a90e2"
             : "#666666";
+      })
+      .onPointClick((point: any) => {
+        const sat = point as (typeof satelliteData)[0];
+        if (sat.isUnlocked) {
+          onSatelliteClick(sat.satellite);
+        }
       });
 
     // マウス操作
@@ -161,41 +167,9 @@ export default function Globe({
       renderer.domElement.style.cursor = "grab";
     };
 
-    // クリックイベント（ラベルのクリック判定）
-    const onClick = () => {
-      if (_hasMoved) return;
-
-      // ラベルの位置をチェック（簡易版）
-      for (const sat of satelliteData) {
-        if (!sat.isUnlocked) continue;
-
-        // 3D座標から2D座標へ変換（簡易）
-        const phi = ((90 - sat.lat) * Math.PI) / 180;
-        const theta = ((sat.lng + 180) * Math.PI) / 180;
-        const radius = 100;
-
-        const x = -(radius * Math.sin(phi) * Math.cos(theta));
-        const y = radius * Math.cos(phi);
-        const z = radius * Math.sin(phi) * Math.sin(theta);
-
-        // カメラからの距離
-        const dx = x - camera.position.x;
-        const dy = y - camera.position.y;
-        const dz = z - camera.position.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        // クリック範囲（広め）
-        if (distance < 120) {
-          onSatelliteClick(sat.satellite);
-          break;
-        }
-      }
-    };
-
     renderer.domElement.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    renderer.domElement.addEventListener("click", onClick);
 
     // ホイールズーム
     const onWheel = (e: WheelEvent) => {
@@ -248,7 +222,6 @@ export default function Globe({
       renderer.domElement.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      renderer.domElement.removeEventListener("click", onClick);
       renderer.domElement.removeEventListener("wheel", onWheel);
       container.removeChild(renderer.domElement);
       renderer.dispose();
