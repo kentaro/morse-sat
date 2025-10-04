@@ -106,38 +106,32 @@ export default function Globe({
       };
     });
 
-    // 衛星をHTMLエレメントとして表示（絵文字）
+    // 衛星をラベルとして表示（絵文字）
     globe
-      .htmlElementsData(satelliteData)
-      .htmlLat("lat")
-      .htmlLng("lng")
-      .htmlAltitude(0)
-      .htmlElement((d: any) => {
+      .labelsData(satelliteData)
+      .labelLat("lat")
+      .labelLng("lng")
+      .labelAltitude(0.01)
+      .labelText((d: any) => {
         const sat = d as (typeof satelliteData)[0];
-        const el = document.createElement("div");
-        el.style.cursor = sat.isUnlocked ? "pointer" : "not-allowed";
-        el.style.fontSize = sat.isCompleted ? "32px" : "24px";
-        el.style.pointerEvents = "auto";
-        el.style.userSelect = "none";
-        el.style.transition = "all 0.2s ease";
-        el.innerHTML = sat.isCompleted ? "✅" : sat.isUnlocked ? "🛰️" : "🔒";
-
+        return sat.isCompleted ? "✅" : sat.isUnlocked ? "🛰️" : "🔒";
+      })
+      .labelSize(() => 2)
+      .labelDotRadius(() => 0.5)
+      .labelColor((d: any) => {
+        const sat = d as (typeof satelliteData)[0];
+        return sat.isCompleted
+          ? "#50fa7b"
+          : sat.isUnlocked
+            ? "#ffffff"
+            : "#666666";
+      })
+      .labelResolution(2)
+      .onLabelClick((label: any) => {
+        const sat = label as (typeof satelliteData)[0];
         if (sat.isUnlocked) {
-          el.addEventListener("click", (e) => {
-            e.stopPropagation();
-            onSatelliteClick(sat.satellite);
-          });
-          el.addEventListener("mouseenter", () => {
-            el.style.transform = "scale(1.5)";
-            el.style.filter = "drop-shadow(0 0 10px rgba(255,255,255,0.9))";
-          });
-          el.addEventListener("mouseleave", () => {
-            el.style.transform = "scale(1)";
-            el.style.filter = "none";
-          });
+          onSatelliteClick(sat.satellite);
         }
-
-        return el;
       });
 
     // マウス操作
@@ -202,7 +196,7 @@ export default function Globe({
       });
 
       // 衛星データを更新
-      globe.htmlElementsData(satelliteData);
+      globe.labelsData([...satelliteData]);
 
       globe.rotation.y = rotation.y;
       globe.rotation.x = rotation.x;
