@@ -106,27 +106,24 @@ export default function Globe({
       };
     });
 
-    // 衛星をラベルとして表示（絵文字）
+    // 衛星をポイントとして表示
     globe
-      .labelsData(satelliteData)
-      .labelLat("lat")
-      .labelLng("lng")
-      .labelAltitude(0.01)
-      .labelText((d: any) => {
+      .pointsData(satelliteData)
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointAltitude(0.01)
+      .pointRadius((d: any) => {
         const sat = d as (typeof satelliteData)[0];
-        return sat.isCompleted ? "✅" : sat.isUnlocked ? "🛰️" : "🔒";
+        return sat.isCompleted ? 3 : 2;
       })
-      .labelSize(() => 2)
-      .labelDotRadius(() => 0.5)
-      .labelColor((d: any) => {
+      .pointColor((d: any) => {
         const sat = d as (typeof satelliteData)[0];
         return sat.isCompleted
           ? "#50fa7b"
           : sat.isUnlocked
-            ? "#ffffff"
+            ? "#4a90e2"
             : "#666666";
-      })
-      .labelResolution(2);
+      });
 
     // マウス操作
     let isDragging = false;
@@ -222,7 +219,7 @@ export default function Globe({
       });
 
       // 衛星データを更新
-      globe.labelsData([...satelliteData]);
+      globe.pointsData([...satelliteData]);
 
       globe.rotation.y = rotation.y;
       globe.rotation.x = rotation.x;
